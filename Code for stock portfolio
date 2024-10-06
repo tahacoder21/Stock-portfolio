@@ -1,0 +1,102 @@
+import tkinter as tk
+from tkinter import messagebox
+import yfinance as yf
+
+# Class to manage the stock portfolio
+class StockPortfolio:
+    def __init__(self):
+        self.portfolio = {}  # Dictionary to hold stock symbols and their corresponding prices
+
+    def fetch_stock_data(self, symbol):
+        try:
+            stock = yf.Ticker(symbol)
+            data = stock.history(period="1d")
+            if not data.empty:
+                return data['Close'].iloc[-1]  # Return the latest closing price
+            else:
+                messagebox.showerror("Error", "No data found for this stock symbol.")
+                return None
+        except Exception as e:
+            messagebox.showerror("Error", f"Error fetching data: {e}")
+            return None
+
+    def add_stock(self, symbol):
+        price = self.fetch_stock_data(symbol)
+        if price is not None:
+            self.portfolio[symbol] = price
+            return True
+        return False
+
+    def remove_stock(self, symbol):
+        if symbol in self.portfolio:
+            del self.portfolio[symbol]
+            return True
+        else:
+            messagebox.showerror("Error", "Stock symbol not found in portfolio.")
+            return False
+
+    def get_portfolio(self):
+        return self.portfolio
+
+
+# Class to create the user interface
+class App:
+    def __init__(self, root):
+        self.portfolio = StockPortfolio()  # Initialize stock portfolio object
+        self.root = root
+        self.root.title("Stock Portfolio Tracker")
+
+        # Input Frame
+        input_frame = tk.Frame(self.root)
+        input_frame.pack(pady=10)
+
+        self.stock_symbol_entry = tk.Entry(input_frame, width=20)
+        self.stock_symbol_entry.grid(row=0, column=0, padx=5)
+
+        add_button = tk.Button(input_frame, text="Add Stock", command=self.add_stock)
+        add_button.grid(row=0, column=1, padx=5)
+
+        remove_button = tk.Button(input_frame, text="Remove Stock", command=self.remove_stock)
+        remove_button.grid(row=0, column=2, padx=5)
+
+        # Display Frame for Portfolio
+        self.display_frame = tk.Frame(self.root)
+        self.display_frame.pack(pady=10)
+
+        self.display_label = tk.Label(self.display_frame, text="Your Portfolio:", font=('Arial', 12))
+        self.display_label.pack()
+
+        self.portfolio_listbox = tk.Listbox(self.display_frame, width=50, height=10)
+        self.portfolio_listbox.pack(pady=5)
+
+        self.update_portfolio_display()
+
+    def add_stock(self):
+        symbol = self.stock_symbol_entry.get().upper()
+        if symbol:
+            if self.portfolio.add_stock(symbol):
+                messagebox.showinfo("Success", f"Added {symbol} to portfolio.")
+            else:
+                messagebox.showerror("Error", f"Failed to add {symbol}.")
+        self.update_portfolio_display()
+
+    def remove_stock(self):
+        symbol = self.stock_symbol_entry.get().upper()
+        if symbol:
+            if self.portfolio.remove_stock(symbol):
+                messagebox.showinfo("Success", f"Removed {symbol} from portfolio.")
+            else:
+                messagebox.showerror("Error", f"Failed to remove {symbol}.")
+        self.update_portfolio_display()
+
+    def update_portfolio_display(self):
+        self.portfolio_listbox.delete(0, tk.END)
+        for symbol, price in self.portfolio.get_portfolio().items():
+            self.portfolio_listbox.insert(tk.END, f"{symbol}: ${price:.2f}")
+
+
+# Run the Tkinter app
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = App(root)
+    root.mainloop()
